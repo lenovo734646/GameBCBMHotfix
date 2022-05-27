@@ -45,24 +45,22 @@ namespace Hotfix.BCBM
 
 		public override IEnumerator OnGameLoginSucc()
 		{
-			if (!mainLoaded_) {
-				mainLoaded_ = true;
-				yield return base.OnGameLoginSucc();
-				yield return DoLoadMainScene();
+			if(mainView != null) {
+				mainView.Close();
+				mainView = null;
 			}
+			yield return base.OnGameLoginSucc();
+			yield return DoLoadMainScene();
 		}
 
 		public override msg_random_result_base CreateRandomResult(string json)
 		{
-			return JsonMapper.ToObject<msg_random_result_slwh>(json);
+			return JsonMapper.ToObject<msg_random_result>(json);
 		}
 
 		public override msg_last_random_base CreateLastRandom(string json)
 		{
-			return JsonMapper.ToObject<msg_last_random_slwh>(json);
+			return JsonMapper.ToObject<msg_last_random>(json);
 		}
-
-		bool mainLoaded_ = false;
-
 	}
 }
