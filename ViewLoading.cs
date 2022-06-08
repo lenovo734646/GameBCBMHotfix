@@ -15,20 +15,18 @@ namespace Hotfix.BCBM
 	public class AShower : IShowDownloadProgress
 	{
 		public ViewLoading vl_;
-		public override void Progress(long downed, long totalLength)
+		public override void OnProgress(long downed, long totalLength)
 		{
-			if (isDestoryed) return;
 			if (vl_.slider != null) vl_.slider.maxValue = totalLength;
 			if (vl_.slider != null) vl_.slider.value = downed;
 		}
 
-		public override void Desc(string desc)
+		public override void OnDesc(string desc)
 		{
-			if (isDestoryed) return;
 			if (vl_.txt != null) vl_.txt.text = desc;
 		}
 
-		public override void SetState(DownloadState st)
+		public override void OnSetState(DownloadState st)
 		{
 
 		}

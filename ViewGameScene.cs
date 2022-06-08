@@ -252,6 +252,36 @@ namespace Hotfix.BCBM
 			var WaitingBankerName = canvas.FindChildDeeply("WaitingBankerName").GetComponent<TextMeshProUGUI>();
 			WaitingBankerName.text = string.Format(Language.ApplyingBanker, applyList_.Count);
 
+			var Toggle_Menu = canvas.FindChildDeeply("Toggle_Menu").GetComponent<Toggle>();
+			Toggle_Menu.onValueChanged.AddListener((seleced) => {
+				if (seleced)
+					Toggle_Menu.gameObject.FindChildDeeply("Option").StartDoTweenAnim(false);
+				else
+					Toggle_Menu.gameObject.FindChildDeeply("Option").StartDoTweenAnim(true);
+			});
+
+			var btn_bank = Toggle_Menu.gameObject.FindChildDeeply("btn_Bank");
+			btn_bank.OnClick(() => {
+				ViewBankLogin bank = new ViewBankLogin(null);
+				AppController.ins.currentApp.game.OpenView(bank);
+			});
+
+			var btn_rule = Toggle_Menu.gameObject.FindChildDeeply("btn_Rule");
+			var RulePanel = canvas.FindChildDeeply("RulePanel");
+			btn_rule.OnClick(() => {
+				RulePanel.StartDoTweenAnim(true);
+			});
+
+
+			var btn_set = Toggle_Menu.gameObject.FindChildDeeply("btn_Set");
+			var btn_exit = Toggle_Menu.gameObject.FindChildDeeply("btn_Exit");
+			btn_exit.OnClick(() => {
+				ViewPopup pop = ViewPopup.Create(LangUITip.ConfirmLeave, (int)ViewPopup.Flag.BTN_OK_CANCEL, () => {
+					this.StartCor(AppController.ins.CheckUpdateAndRun(AppController.ins.conf.defaultGame, null, false), false);
+				});
+			});
+
+
 			//百人类游戏直接进游戏房间
 			var handle1 = AppController.ins.network.EnterGameRoom(1, 0);
 			yield return handle1;
@@ -569,7 +599,7 @@ namespace Hotfix.BCBM
 					current.StartParticles();
 				};
 
-				yield return tween.WaitForCompletion();
+				yield return new WaitForSeconds(app.conf.carRunnigTime * stateTimePercent);
 				car.Stoped();
 
 				var winStage = GameObject.Find("winStage").FindChildDeeply(((int)bi).ToString());
