@@ -38,6 +38,7 @@ namespace Hotfix.BCBM
 
 		IEnumerator DoLoadMainScene()
 		{
+			yield return loading.WaitingForReady();
 			var view = new ViewGameScene(loading.loading);
 			OpenView(view);
 			yield return 0;
