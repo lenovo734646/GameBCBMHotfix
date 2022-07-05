@@ -22,7 +22,7 @@ namespace Hotfix.BCBM
 	{
 		public List<int> betSet = new List<int>();
 		public Dictionary<eBetID, int> ratio = new Dictionary<eBetID, int>();
-		public new Dictionary<int, eBetID> itemsPlaced;
+		public Dictionary<int, eBetID> itemsPlaced;
 		public float carRunnigTime = 12.0f;
 		public int maxRecordCount = 20;
 		public void Init()

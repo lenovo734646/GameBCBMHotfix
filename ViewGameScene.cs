@@ -3,6 +3,7 @@ using DG.Tweening;
 using DG.Tweening.Core;
 using DG.Tweening.Plugins.Options;
 using Hotfix.Common;
+using Hotfix.Common.MultiPlayer;
 using Hotfix.Model;
 using LitJson;
 using Spine.Unity;
@@ -55,7 +56,7 @@ namespace Hotfix.BCBM
 				msg_set_bets_req msg = new msg_set_bets_req();
 				msg.pid_ = mainV_.betSelected;
 				msg.present_id_ = betID_;
-				AppController.ins.network.SendMessage((short)GameMultiReqID.msg_set_bets_req, msg);
+				App.ins.network.SendMessage((ushort)GameMultiReqID.msg_set_bets_req, msg);
 				
 				if (mainV_.lastBetTurn_ != mainV_.turn_)
 					mainV_.lastBets.Clear();
@@ -141,13 +142,13 @@ namespace Hotfix.BCBM
 	{
 		public ViewGameScene(IShowDownloadProgress ip):base(ip)
 		{
-			var gm = (GameControllerMultiplayer)AppController.ins.currentApp.game;
+			var gm = (GameControllerMultiplayer)App.ins.currentApp.game;
 			gm.mainView = this;
 		}
 
 		protected override void SetLoader()
 		{
-			var ctrl = (GameController)AppController.ins.currentApp.game;
+			var ctrl = (GameController)App.ins.currentApp.game;
 			LoadScene("Assets/Res/Games/BCBM/Scenes/MainScene.unity", null);
 
 			for(int i = 1; i <= 8; i++) {
@@ -166,7 +167,6 @@ namespace Hotfix.BCBM
 
 		protected override IEnumerator OnResourceReady()
 		{
-			yield return base.OnResourceReady();
 			var view = GameObject.Find("View");
 			canvas = GameObject.Find("Canvas");
 			canvas3D = GameObject.Find("Canvas3D");
@@ -225,7 +225,7 @@ namespace Hotfix.BCBM
 			var btnClean = canvas.FindChildDeeply("btnClean");
 			btnClean.OnClick(() => {
 				msg_clear_my_bets msg = new msg_clear_my_bets();
-				AppController.ins.network.SendMessage((short)GameMultiReqID.msg_clear_my_bets, msg);
+				App.ins.network.SendMessage((ushort)GameMultiReqID.msg_clear_my_bets, msg);
 				myTotalBet_ = 0;
 			});
 	
@@ -238,11 +238,11 @@ namespace Hotfix.BCBM
 			btnToBanker.OnClick(()=>{
 				if (!isApplyingBanker) {
 					msg_apply_banker_req msg = new msg_apply_banker_req();
-					AppController.ins.network.SendMessage((short)GameMultiReqID.msg_apply_banker_req, msg);
+					App.ins.network.SendMessage((ushort)GameMultiReqID.msg_apply_banker_req, msg);
 				}
 				else {
 					msg_cancel_banker_req msg = new msg_cancel_banker_req();
-					AppController.ins.network.SendMessage((short)GameMultiReqID.msg_cancel_banker_req, msg);
+					App.ins.network.SendMessage((ushort)GameMultiReqID.msg_cancel_banker_req, msg);
 				}
 			});
 
@@ -263,7 +263,7 @@ namespace Hotfix.BCBM
 			var btn_bank = Toggle_Menu.gameObject.FindChildDeeply("btn_Bank");
 			btn_bank.OnClick(() => {
 				ViewBankLogin bank = new ViewBankLogin(null);
-				AppController.ins.currentApp.game.OpenView(bank);
+				App.ins.currentApp.game.OpenView(bank);
 			});
 
 			var btn_rule = Toggle_Menu.gameObject.FindChildDeeply("btn_Rule");
@@ -277,19 +277,19 @@ namespace Hotfix.BCBM
 			var btn_exit = Toggle_Menu.gameObject.FindChildDeeply("btn_Exit");
 			btn_exit.OnClick(() => {
 				ViewPopup pop = ViewPopup.Create(LangUITip.ConfirmLeave, ViewPopup.Flag.BTN_OK_CANCEL, () => {
-					AppController.ins.StartCor(AppController.ins.CheckUpdateAndRun(AppController.ins.conf.defaultGame, null, false), false);
+					App.ins.StartCor(App.ins.CheckUpdateAndRun(App.ins.conf.defaultGame, null, false), false);
 				});
 			});
 
 
 			//百人类游戏直接进游戏房间
-			var handle1 = AppController.ins.network.EnterGameRoom(1, 0);
+			var handle1 = App.ins.network.EnterGameRoom(1, 0);
 			yield return handle1;
 			if ((int)handle1.Current == 0) {
 				ViewToast.Create(LangNetWork.EnterRoomFailed);
 			}
 
-			AppController.ins.self.gamePlayer.onDataChanged += OnMyDataChanged;
+			App.ins.self.gamePlayer.onDataChanged += OnMyDataChanged;
 			OnMyDataChanged(null, null);
 		}
 	
@@ -297,7 +297,7 @@ namespace Hotfix.BCBM
 		{
 			isAutoBeting = true;
 			for (int i = 0; i < lastBets.Count; i++) {
-				AppController.ins.network.SendMessage((short)GameMultiReqID.msg_set_bets_req, lastBets[i]);
+				App.ins.network.SendMessage((ushort)GameMultiReqID.msg_set_bets_req, lastBets[i]);
 				yield return new WaitForSeconds(0.1f);
 			}
 			isAutoBeting = false;
@@ -307,35 +307,24 @@ namespace Hotfix.BCBM
 		{
 			var useInfo = canvas.FindChildDeeply("UserInfo");
 			var head = useInfo.FindChildDeeply("Head").GetComponent<Image>();
-			AppController.ins.self.gamePlayer.SetHeadPic(head);
+			App.ins.self.gamePlayer.SetHeadPic(head);
 
 			var frame = useInfo.FindChildDeeply("HeadFrame").GetComponent<Image>();
-			AppController.ins.self.gamePlayer.SetHeadFrame(frame);
+			App.ins.self.gamePlayer.SetHeadFrame(frame);
 
 			var nickName = useInfo.FindChildDeeply("UserName").GetComponent<TextMeshProUGUI>();
-			nickName.text = AppController.ins.self.gamePlayer.nickName;
+			nickName.text = App.ins.self.gamePlayer.nickName;
 
 			var goldText = useInfo.FindChildDeeply("UserMoney").GetComponent<TextMeshProUGUI>();
-			goldText.text = Utils.FormatGoldShow(AppController.ins.self.gamePlayer.items[(int)ITEMID.GOLD]);
+			goldText.text = App.ins.self.gamePlayer.items[(int)ITEMID.GOLD].ShowAsGold();
 		}
 
-		public override void Close()
+		protected override void OnClose()
 		{
 			betItems_.Clear();
-			AppController.ins.self.gamePlayer.onDataChanged -= OnMyDataChanged;
+			App.ins.self.gamePlayer.onDataChanged -= OnMyDataChanged;
 			base.Close();
 		}
-
-		public override void OnNetMsg(int cmd, string json)
-		{
-			switch (cmd) {
-				case (int)GameMultiRspID.msg_send_color: {
-					
-				}
-				break;
-			}
-		}
-
 		IEnumerator CountDown_(float t, TextMeshProUGUI txtCounter)
 		{
 			float tLeft = t;
@@ -378,7 +367,7 @@ namespace Hotfix.BCBM
 			winScore.SetActive(false);
 
 			var name = selfInfo.FindChildDeeply("name").GetComponent<Text>();
-			name.text = AppController.ins.self.gamePlayer.nickName;
+			name.text = App.ins.self.gamePlayer.nickName;
 
 			for (int i = 0; i < 5; i++) {
 				var otherInfo = resultPanel.FindChildDeeply("otherInfo_" + (i + 1));
@@ -422,7 +411,7 @@ namespace Hotfix.BCBM
 				StartBet.SetActive(true);
 				StartBet.StartSpine();
 
-				if(!AppController.ins.currentApp.game.isEntering)
+				if(!App.ins.currentApp.game.isEntering)
 					ResetBetState_();
 
 				gameReports.Clear();
@@ -506,7 +495,7 @@ namespace Hotfix.BCBM
 
 		public override void OnMyBet(msg_my_setbet msg)
 		{
-			if (AppController.ins.currentApp.game.isEntering) {
+			if (App.ins.currentApp.game.isEntering) {
 				MyDebug.LogFormat("OnMyBet in entering.");
 			}
 			var bi = betItems_[int.Parse(msg.present_id_)];
@@ -525,14 +514,14 @@ namespace Hotfix.BCBM
 
 		public override void OnPlayerLeave(msg_player_leave msg)
 		{
-			var game = AppController.ins.currentApp.game;
+			var game = App.ins.currentApp.game;
 			var pp = game.GetPlayer(msg.pos_);
 			game.RemovePlayer(int.Parse(msg.pos_));
 		}
 
 		IEnumerator DoRandomResult_(msg_random_result_base msg, bool setRecord)
 		{
-			MyApp app = (MyApp)AppController.ins.currentApp;
+			MyApp app = (MyApp)App.ins.currentApp;
 			var pmsg = (msg_random_result)msg;
 			int result = int.Parse(pmsg.rand_result_);
 			var bi = app.conf.itemsPlaced[result];
@@ -542,7 +531,7 @@ namespace Hotfix.BCBM
 			winIcon.ChangeSprite(resultItemTexture[(int)bi]);
 
 			var winRatio = resultPanel.FindChildDeeply("winRatio").GetComponent<TextMeshProUGUI>();
-			winRatio.text = "X" + ((MyApp)AppController.ins.currentApp).conf.ratio[bi];
+			winRatio.text = "X" + ((MyApp)App.ins.currentApp).conf.ratio[bi];
 			
 			if(st == GameControllerBase.GameState.state_do_random) {
 				thisPid_ = result;
@@ -624,7 +613,7 @@ namespace Hotfix.BCBM
 
 		public override void OnRandomResult(msg_random_result_base msg)
 		{
-			MyApp app = (MyApp)AppController.ins.currentApp;
+			MyApp app = (MyApp)App.ins.currentApp;
 			var pmsg = (msg_random_result)msg;
 			int result = int.Parse(pmsg.rand_result_);
 			var bi = app.conf.itemsPlaced[result];
@@ -636,7 +625,7 @@ namespace Hotfix.BCBM
 
 		GameObject CreateGameRecordItem_(int pid)
 		{
-			MyApp app = (MyApp)AppController.ins.currentApp;
+			MyApp app = (MyApp)App.ins.currentApp;
 			if (!app.conf.itemsPlaced.ContainsKey(pid)) {
 				MyDebug.LogWarning("pid not find:" + pid.ToString());
 			}
@@ -680,11 +669,11 @@ namespace Hotfix.BCBM
 			long bankerWin = long.Parse(msg.this_win_);
 			if(bankerWin > 0) {
 				txtBankerWin.font = fontWin;
-				txtBankerWin.text = "+" + Utils.FormatGoldShow(bankerWin);
+				txtBankerWin.text = "+" + bankerWin.ShowAsGold();
 			}
 			else {
 				txtBankerWin.font = fontLose;
-				txtBankerWin.text = Utils.FormatGoldShow(bankerWin);
+				txtBankerWin.text = bankerWin.ShowAsGold();
 			}
 		}
 
@@ -696,7 +685,7 @@ namespace Hotfix.BCBM
 				ChangeBankerTip.StartAnim();
 			}
 
-			banker = AppController.ins.currentApp.game.GetPlayer(msg.uid_);
+			banker = App.ins.currentApp.game.GetPlayer(msg.uid_);
 			if(banker == null) {
 				banker = OnPlayerEnter(msg);
 			}
@@ -726,17 +715,17 @@ namespace Hotfix.BCBM
 
 		public override void OnGameReport(msg_game_report msg)
 		{
-			if (msg.uid_ == AppController.ins.self.gamePlayer.uid) {
+			if (msg.uid_ == App.ins.self.gamePlayer.uid) {
 				var selfInfo = resultPanel.FindChildDeeply("selfInfo");
 				var winScore = selfInfo.FindChildDeeply("winScore");
 				long win = long.Parse(msg.actual_win_);
 				if(win > 0) {
 					winScore.GetComponent<Text>().font = fontWin;
-					winScore.GetComponent<Text>().text = "+" + Utils.FormatGoldShow(win);
+					winScore.GetComponent<Text>().text = "+" + win.ShowAsGold();
 				}
 				else {
 					winScore.GetComponent<Text>().font = fontLose;
-					winScore.GetComponent<Text>().text = Utils.FormatGoldShow(win);
+					winScore.GetComponent<Text>().text = win.ShowAsGold();
 				}
 				var NOBetTip = resultPanel.FindChildDeeply("NOBetTip");
 				NOBetTip.SetActive(false);
@@ -780,17 +769,17 @@ namespace Hotfix.BCBM
 				var txtwinScore = otherInfo_1.FindChildDeeply("winScore").GetComponent<Text>();
 				txtName.text = thisMsg.nickname_;
 				long v = long.Parse(thisMsg.actual_win_);
-				txtwinScore.text = Utils.FormatGoldShow(v);							
+				txtwinScore.text = v.ShowAsGold();							
 			}
 		}
 
 		public override void OnGoldChange(msg_deposit_change2 msg)
 		{
-			int pos = AppController.ins.self.gamePlayer.serverPos;
+			int pos = App.ins.self.gamePlayer.serverPos;
 			if (int.Parse(msg.pos_) == pos) {
 				if(int.Parse(msg.display_type_) == (int)msg_deposit_change2.dp.display_type_sync_gold) {
-					AppController.ins.self.gamePlayer.items.SetKeyVal((int)ITEMID.GOLD, long.Parse(msg.credits_));
-					AppController.ins.self.gamePlayer.DispatchDataChanged();
+					App.ins.self.gamePlayer.items.SetKeyVal((int)ITEMID.GOLD, long.Parse(msg.credits_));
+					App.ins.self.gamePlayer.DispatchDataChanged();
 				}
 			}
 		}
@@ -798,8 +787,8 @@ namespace Hotfix.BCBM
 		public override void OnGoldChange(msg_currency_change msg)
 		{
 			if(msg.why_ == "0") {
-				AppController.ins.self.gamePlayer.items.SetKeyVal((int)ITEMID.GOLD, long.Parse(msg.credits_));
-				AppController.ins.self.gamePlayer.DispatchDataChanged();
+				App.ins.self.gamePlayer.items.SetKeyVal((int)ITEMID.GOLD, long.Parse(msg.credits_));
+				App.ins.self.gamePlayer.DispatchDataChanged();
 			}
 
 		}
@@ -813,7 +802,7 @@ namespace Hotfix.BCBM
 			}
 
 			//如果我在上庄
-			if (applyList_.ContainsKey(AppController.ins.self.gamePlayer.uid)) {
+			if (applyList_.ContainsKey(App.ins.self.gamePlayer.uid)) {
 				var txt = btnToBanker.FindChildDeeply("Text (TMP)").GetComponent<TextMeshProUGUI>();
 				txt.text = Language.CancelBanker;
 				isApplyingBanker = true;
@@ -826,7 +815,7 @@ namespace Hotfix.BCBM
 			var WaitingBankerName = canvas.FindChildDeeply("WaitingBankerName").GetComponent<TextMeshProUGUI>();
 			WaitingBankerName.text = string.Format(Language.ApplyingBanker, applyList_.Count);
 			//如果我不在上庄
-			if (!applyList_.ContainsKey(AppController.ins.self.gamePlayer.uid)) {
+			if (!applyList_.ContainsKey(App.ins.self.gamePlayer.uid)) {
 				var txt = btnToBanker.FindChildDeeply("Text (TMP)").GetComponent<TextMeshProUGUI>();
 				txt.text = Language.ApplyBanker;
 				isApplyingBanker = false;
@@ -843,6 +832,11 @@ namespace Hotfix.BCBM
 					ViewToast.Create(Language.BankerRequirement);
 				}
 			}
+		}
+
+		public override void OnJackpotNumber(msg_get_public_data_ret msg)
+		{
+			throw new NotImplementedException();
 		}
 
 		long myTotalBet_
