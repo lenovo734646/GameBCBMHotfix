@@ -1,4 +1,5 @@
 ﻿using Hotfix.Common;
+using Hotfix.Common.MultiPlayer;
 using System;
 using System.Collections.Generic;
 using System.Linq;

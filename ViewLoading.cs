@@ -50,11 +50,11 @@ namespace Hotfix.BCBM
 
 		protected override IEnumerator OnResourceReady()
 		{
-			yield return base.OnResourceReady();
 			var canvas = GameObject.Find("Canvas");
 			slider = canvas.FindChildDeeply("Slider").GetComponent<Slider>();
 			txt = canvas.FindChildDeeply("Text").GetComponent<Text>();
 			loading.SetUIRoot(canvas.FindChildDeeply("Slider"));
+			yield return 0;
 		}
 	}
 }

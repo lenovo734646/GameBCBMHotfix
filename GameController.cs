@@ -1,5 +1,6 @@
 ﻿using AssemblyCommon;
 using Hotfix.Common;
+using Hotfix.Common.MultiPlayer;
 using LitJson;
 using System.Collections;
 using UnityEngine;
@@ -44,12 +45,8 @@ namespace Hotfix.BCBM
 			yield return 0;
 		}
 
-		public override IEnumerator OnGameLoginSucc()
+		protected override IEnumerator OnGameLoginSucc()
 		{
-			if(mainView != null) {
-				mainView.Close();
-				mainView = null;
-			}
 			yield return base.OnGameLoginSucc();
 			yield return DoLoadMainScene();
 		}
