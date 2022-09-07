@@ -367,7 +367,7 @@ namespace Hotfix.BCBM
 						App.ins.audio.PlayEffOneShot("Assets/Res/Games/BCBM/BCBM/music/alert.wav");
 						alertPlayed_ = true;
 					}
-						App.ins.audio.PlayEffOneShot("Assets/Res/Games/BCBM/BCBM/music/countdown.wav");
+					App.ins.audio.PlayEffOneShot("Assets/Res/Games/BCBM/BCBM/music/countdown.wav");
 				}
 			}
 			yield return 0;
