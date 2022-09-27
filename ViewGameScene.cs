@@ -98,6 +98,7 @@ namespace Hotfix.BCBM
 				lightNear_.SetActive(true);
 				yield return new WaitForSeconds(0.2f * timePercent);
 			}
+			App.ins.audio.PlayEffOneShot("Assets/Res/Games/BCBM/BCBM/music/start_car.mp3");
 			lightNear_.SetActive(false);
 			//切换远光灯
 			lightFar_.SetActive(true);
@@ -108,8 +109,8 @@ namespace Hotfix.BCBM
 		//全速跑
 		public void Running()
 		{
-			startEffect_.StopParticles();
-			startEffect_.SetActive(false);
+			//startEffect_.StopParticles();
+			//startEffect_.SetActive(false);
 		}
 
 		//快到终点,开始减速
@@ -153,21 +154,27 @@ namespace Hotfix.BCBM
 
 			for(int i = 1; i <= 8; i++) {
 				int index = i;
-				LoadAssets<Texture2D>($"Assets/Res/Games/BCBM/BCBM/UI/Record/record_{i}.png", t => rewardItemTexture.Add(index, t.Result));
+				LoadAssets<Texture2D>($"Assets/Res/Games/BCBM/BCBM/UI/Record/record_{i}.png", t => rewardItemTexture_.Add(index, t.Result));
 			}
 
 			for (int i = 1; i <= 8; i++) {
 				int index = i;
-				LoadAssets<Texture2D>($"Assets/Res/Games/BCBM/BCBM/UI/rule/{i}.png", t => resultItemTexture.Add(index, t.Result));
+				LoadAssets<Texture2D>($"Assets/Res/Games/BCBM/BCBM/UI/rule/{i}.png", t => resultItemTexture_.Add(index, t.Result));
 			}
 
 			LoadAssets<Font>("Assets/Res/Games/BCBM/BCBM/UI/Fonts/jeisuan.fontsettings", t => fontWin = t.Result);
 			LoadAssets<Font>("Assets/Res/Games/BCBM/BCBM/UI/Fonts/jiehsuan-.fontsettings", t => fontLose = t.Result);
 		}
 
+		public override void Update()
+		{
+			
+		}
+
 		protected override IEnumerator OnResourceReady()
 		{
-			var view = GameObject.Find("View");
+			if( view_ == null) view_ = GameObject.Find("View");
+
 			canvas = GameObject.Find("Canvas");
 			canvas3D = GameObject.Find("Canvas3D");
 			betStageRoot = canvas3D.FindChildDeeply("betAreaButtons");
@@ -176,12 +183,15 @@ namespace Hotfix.BCBM
 			waitNextStateTip = canvas.FindChildDeeply("WaitNextStateTip");
 			recordViewport = canvas3D.FindChildDeeply("OSAScrollView").FindChildDeeply("Content");
 
-			carWinFx = view.FindChildDeeply("carWinFx");
+			uiCamera_ = GameObject.Find("Camera").GetComponent<Camera>();
+			arenaCamera_ = GameObject.Find("Main Camera").GetComponent<Camera>();
+
+			carWinFx = view_.FindChildDeeply("carWinFx");
 
 			var betSelectBtns = canvas.FindChildDeeply("BetSelectBtns");
 			var SelectEffect = betSelectBtns.FindChildDeeply("SelectEffect");
 
-			car = new RunningCar(GameObject.Find("Paoche"));
+			car_ = new RunningCar(GameObject.Find("Paoche"));
 
 			for (int i = 0; i <= 5; i++) {
 				int bi = i;
@@ -200,27 +210,41 @@ namespace Hotfix.BCBM
 			}
 
 			{
-				var ChouMaList = view.FindChildDeeply("ChouMaList");
+				var ChouMaList = view_.FindChildDeeply("ChouMaList");
 				var obj = ChouMaList.FindChildDeeply("bcbm_couma_1K");
-				chipModels.Add(obj);
+				chipModels_.Add(obj);
 				obj = ChouMaList.FindChildDeeply("bcbm_couma_1W");
-				chipModels.Add(obj);
+				chipModels_.Add(obj);
 				obj = ChouMaList.FindChildDeeply("bcbm_couma_10W");
-				chipModels.Add(obj);
+				chipModels_.Add(obj);
 				obj = ChouMaList.FindChildDeeply("bcbm_couma_50W");
-				chipModels.Add(obj);
+				chipModels_.Add(obj);
 				obj = ChouMaList.FindChildDeeply("bcbm_couma_100W");
-				chipModels.Add(obj);
+				chipModels_.Add(obj);
 				obj = ChouMaList.FindChildDeeply("bcbm_couma_500W");
-				chipModels.Add(obj);
+				chipModels_.Add(obj);
 			}
 			
 			var btn_BetAgain = canvas.FindChildDeeply("btn_BetAgain").GetComponent<Button>();
 
-			btn_BetAgain.onClick.AddListener(() => {
-				if(!isAutoBeting)
-					this.StartCor(ContinueBet(), true);
-			});
+			System.Action onClick = () => {
+				if (isAutoBettingEnabled_) {
+					isAutoBettingEnabled_ = false;
+					btn_BetAgain.gameObject.CompleteSpine();
+				}
+				else {
+					if (isAutoBeting_ == 0) {
+						this.StartCor(ContinueBet(), true);
+					}
+				}
+			};
+
+			btn_BetAgain.gameObject.LongPress(() => {
+				if (!isAutoBettingEnabled_) {
+					isAutoBettingEnabled_ = true;
+					btn_BetAgain.gameObject.StartSpine(true);
+				}
+			}, 2.0f, onClick);
 
 			var btnClean = canvas.FindChildDeeply("btnClean");
 			btnClean.OnClick(() => {
@@ -236,7 +260,7 @@ namespace Hotfix.BCBM
 
 			btnToBanker = canvas.FindChildDeeply("BankerInfo").FindChildDeeply("btnToBanker");
 			btnToBanker.OnClick(()=>{
-				if (!isApplyingBanker) {
+				if (!isApplyingBanker_) {
 					msg_apply_banker_req msg = new msg_apply_banker_req();
 					App.ins.network.SendMessage((ushort)GameMultiReqID.msg_apply_banker_req, msg);
 				}
@@ -269,7 +293,7 @@ namespace Hotfix.BCBM
 			var btn_rule = Toggle_Menu.gameObject.FindChildDeeply("btn_Rule");
 			var RulePanel = canvas.FindChildDeeply("RulePanel");
 			btn_rule.OnClick(() => {
-				RulePanel.StartDoTweenAnim(true);
+				RulePanel.StartDoTweenAnim(false);
 			});
 
 
@@ -291,16 +315,18 @@ namespace Hotfix.BCBM
 
 			App.ins.self.gamePlayer.onDataChanged += OnMyDataChanged;
 			OnMyDataChanged(null, null);
+
+			App.ins.audio.PlayEffOneShot("Assets/Res/Games/BCBM/BCBM/music/BGM.mp3");
 		}
 	
 		IEnumerator ContinueBet()
 		{
-			isAutoBeting = true;
+			isAutoBeting_ = 1;
 			for (int i = 0; i < lastBets.Count; i++) {
 				App.ins.network.SendMessage((ushort)GameMultiReqID.msg_set_bets_req, lastBets[i]);
 				yield return new WaitForSeconds(0.1f);
 			}
-			isAutoBeting = false;
+			isAutoBeting_ = 2;
 		}
 
 		void OnMyDataChanged(object sender, EventArgs evt)
@@ -325,14 +351,24 @@ namespace Hotfix.BCBM
 			App.ins.self.gamePlayer.onDataChanged -= OnMyDataChanged;
 			base.Close();
 		}
+
+		bool alertPlayed_ = false;
 		IEnumerator CountDown_(float t, TextMeshProUGUI txtCounter)
 		{
+			alertPlayed_ = false;
 			float tLeft = t;
 			while (tLeft > 0) {
 				tLeft -= 1.0f;
-				yield return new WaitForSeconds(0.95f);
+				yield return new WaitForSeconds(0.99f);
 				if (tLeft < 0.0f) tLeft = 0.0f;
 				txtCounter.text = tLeft.ToString();
+				if(tLeft < 5 && st == GameControllerBase.GameState.state_wait_start) {
+					if (!alertPlayed_) {
+						App.ins.audio.PlayEffOneShot("Assets/Res/Games/BCBM/BCBM/music/alert.wav");
+						alertPlayed_ = true;
+					}
+					App.ins.audio.PlayEffOneShot("Assets/Res/Games/BCBM/BCBM/music/countdown.wav");
+				}
 			}
 			yield return 0;
 		}
@@ -350,10 +386,10 @@ namespace Hotfix.BCBM
 				winStage.StartParticles();
 			}
 
-			foreach(var obj in flyingChips) {
+			foreach(var obj in flyingChips_) {
 				GameObject.Destroy(obj);
 			}
-			flyingChips.Clear();
+			flyingChips_.Clear();
 
 			carWinFx.SetActive(false);
 		}
@@ -373,13 +409,12 @@ namespace Hotfix.BCBM
 				var otherInfo = resultPanel.FindChildDeeply("otherInfo_" + (i + 1));
 				otherInfo.SetActive(false);
 			}
-
 		}
 
 		IEnumerator RandomShine()
 		{
 			var carIndexs = GameObject.Find("carIndexs");
-			while (st == GameControllerBase.GameState.state_do_random) {
+			while (st == GameControllerBase.GameState.state_wait_start) {
 				int i = Globals.Random_Range(1, 32);
 				var obj = carIndexs.FindChildDeeply(i.ToString()).FindChildDeeply("select");
 				obj.StartParticles();
@@ -389,34 +424,36 @@ namespace Hotfix.BCBM
 
 		public override void OnStateChange(msg_state_change msg)
 		{
-			st = (GameControllerBase.GameState)int.Parse(msg.change_to_);
-			var txtCounter = canvas.FindChildDeeply("GameTimeCounter").FindChildDeeply("Time").GetComponent<TextMeshProUGUI>();
-			var gameStateText = canvas.FindChildDeeply("gameStateText").FindChildDeeply("gameStateText").GetComponent<TextMeshProUGUI>();
+			var newSt = (GameControllerBase.GameState)int.Parse(msg.change_to_);
+			var txtCounter = canvas.FindChildDeeply("GameTimeCounter/Time").GetComponent<TextMeshProUGUI>();
+			var gameStateText = canvas.FindChildDeeply("gameStateText/gameStateText").GetComponent<TextMeshProUGUI>();
 
 			var StartBet =  canvas.FindChildDeeply("StartBet");
 			var StopBet = canvas.FindChildDeeply("StopBet");
 
 			if (int.Parse(msg.time_total_) > 0)
-				stateTimePercent = int.Parse(msg.time_left) * 1.0f / int.Parse(msg.time_total_);
+				stateTimePercent_ = int.Parse(msg.time_left) * 1.0f / int.Parse(msg.time_total_);
 
 			StartBet.SetActive(false);
 			StopBet.SetActive(false);
 			
-			if (st == GameControllerBase.GameState.state_wait_start) {
+			if (newSt == GameControllerBase.GameState.state_wait_start) {
+				st = newSt;
 				myTotalBet_ = 0;
+				isAutoBeting_ = 00;
 				resultPanel.SetActive(false);
 				gameStateText.text = LangMultiplayer.WaitingForBet;
 				waitNextStateTip.SetActive(false);
 				
 				StartBet.SetActive(true);
 				StartBet.StartSpine();
-
-				if(!App.ins.currentApp.game.isEntering)
+				App.ins.audio.PlayEffOneShot("Assets/Res/Games/BCBM/BCBM/music/CN/start_bet.wav");
+				if (!App.ins.currentApp.game.isEntering)
 					ResetBetState_();
 
-				gameReports.Clear();
+				gameReports_.Clear();
 
-				Globals.cor.RunAction(this, 2.0f * stateTimePercent, () => {
+				Globals.cor.RunAction(this, 2.0f * stateTimePercent_, () => {
 					StartBet.SetActive(false);
 				});
 
@@ -424,7 +461,7 @@ namespace Hotfix.BCBM
 				this.StartCor(RandomShine(), false);
 
 			}
-			else if (st == GameControllerBase.GameState.state_do_random) {
+			else if (newSt == GameControllerBase.GameState.state_do_random) {
 				for (int i = 1; i <= 8; i++) {
 					var winStage = GameObject.Find("winStage").FindChildDeeply((i).ToString());
 					winStage.SetActive(false);
@@ -437,43 +474,50 @@ namespace Hotfix.BCBM
 				StopBet.SetActive(true);
 				StopBet.StartSpine();
 
-				Globals.cor.RunAction(this, 2.0f * stateTimePercent, () => {
+				Globals.cor.RunAction(this, 2.0f * stateTimePercent_, () => {
 					StopBet.SetActive(false);
 				});
-
+				if(st != newSt) {
+					App.ins.audio.PlayEffOneShot("Assets/Res/Games/BCBM/BCBM/music/CN/stop_bet.wav");
+				}
 			}
-			else if (st == GameControllerBase.GameState.state_rest_end) {
+			else if (newSt == GameControllerBase.GameState.state_rest_end) {
 				gameStateText.text = LangMultiplayer.BalanceResult;
 				resultPanel.SetActive(true);
 				ResetResultPanel_();
+
 			}
 
 			this.StartCor(CountDown_(int.Parse(msg.time_left), txtCounter), false);
+			st = newSt;
 		}
 
+		GameObject flyOutPos_;
 		public override void OnPlayerSetBet(msg_player_setbet msg)
 		{
-			var view = GameObject.Find("View");
+			if (view_ == null) view_ = GameObject.Find("View");
 			var bi = betItems_[int.Parse(msg.present_id_)];
 			
 			bi.SetTotalBet(long.Parse(msg.max_setted_));
 
-			var flyOutPos = view.FindChildDeeply("flyOutPos");
+			if(flyOutPos_ == null) flyOutPos_ = view_.FindChildDeeply("flyOutPos");
 
 			int chipID = int.Parse(msg.pid_);
-			FlyChipTo(msg.present_id_, chipID, flyOutPos.transform.position);
+			FlyChipTo(msg.present_id_, chipID, flyOutPos_.transform.position);
 		}
 
+		GameObject view_, dstPosList_;
+		float lastChipSound_ = 0.0f;
 		void FlyChipTo(string presentID, int chipID, Vector3 startPos)
 		{
-			var view = GameObject.Find("View");
-			var dstPosList = view.FindChildDeeply("dstPosList");
-			var betTarget = dstPosList.FindChildDeeply("betArea" + presentID);
-			var chipToFly = GameObject.Instantiate(chipModels[chipID - 1]);
+			if (view_ == null) view_ = GameObject.Find("View");
+			if (dstPosList_ == null) dstPosList_ = view_.FindChildDeeply("dstPosList");
+			var betTarget = dstPosList_.FindChildDeeply("betArea" + presentID);
+			var chipToFly = GameObject.Instantiate(chipModels_[chipID - 1]);
 			chipToFly.transform.SetParent(betTarget.transform, true);
 
 			if (startPos.x == float.PositiveInfinity)
-				chipToFly.transform.position = chipModels[chipID - 1].transform.position;
+				chipToFly.transform.position = chipModels_[chipID - 1].transform.position;
 			else
 				chipToFly.transform.position = startPos;
 
@@ -482,15 +526,20 @@ namespace Hotfix.BCBM
 			pos.z += Globals.Random_Range(-100, 100) / 30.0f;
 
 			chipToFly.transform.DOMove(pos, 0.3f);
-			flyingChips.Add(chipToFly);
+			flyingChips_.Add(chipToFly);
 			//筹码太多了需要移除
 			Globals.cor.RunAction(this, 0.1f, () => {
 				if(betTarget.transform.childCount > 10) {
 					var obj = betTarget.transform.GetChild(0);
 					GameObject.Destroy(obj.gameObject);
-					flyingChips.Remove(obj.gameObject);
+					flyingChips_.Remove(obj.gameObject);
 				}
 			});
+
+			if(Time.time - lastChipSound_ > 0.2) {
+				lastChipSound_ = Time.time;
+				App.ins.audio.PlayEffOneShot("Assets/Res/Games/BCBM/BCBM/music/bet.wav");
+			}
 		}
 
 		public override void OnMyBet(msg_my_setbet msg)
@@ -528,7 +577,7 @@ namespace Hotfix.BCBM
 
 			
 			var winIcon = resultPanel.FindChildDeeply("winIcon").GetComponent<Image>();
-			winIcon.ChangeSprite(resultItemTexture[(int)bi]);
+			winIcon.ChangeSprite(resultItemTexture_[(int)bi]);
 
 			var winRatio = resultPanel.FindChildDeeply("winRatio").GetComponent<TextMeshProUGUI>();
 			winRatio.text = "X" + ((MyApp)App.ins.currentApp).conf.ratio[bi];
@@ -544,7 +593,7 @@ namespace Hotfix.BCBM
 				}
 
 				//中间跑5圈
-				for(int j = 0; j < 5; j++) {
+				for(int j = 0; j < 4; j++) {
 					for(int i = 1; i <= 32; i++) {
 						wayPointHolder.Add(i);
 					}
@@ -568,29 +617,36 @@ namespace Hotfix.BCBM
 					objs.Add(obj);
 				}
 
-				yield return car.StartRace(stateTimePercent);
-
-				var tween = car.carModel.transform.DOPath(wps.ToArray(), app.conf.carRunnigTime * stateTimePercent, PathType.CatmullRom);
+				yield return car_.StartRace(stateTimePercent_);
+				App.ins.audio.PlayEffOneShot("Assets/Res/Games/BCBM/BCBM/music/readygo.mp3");
+				yield return new WaitForSeconds(1.5f);
+				var tween = car_.carModel.transform.DOPath(wps.ToArray(), app.conf.carRunnigTime * stateTimePercent_, PathType.CatmullRom);
 				tween.SetLookAt(0.01f);
-				tween.SetEase(Ease.InOutQuint);
-				
+				tween.SetEase(Ease.InOutSine);
+				App.ins.audio.PlayEffOneShot("Assets/Res/Games/BCBM/BCBM/music/start_car.mp3");
 				tween.onWaypointChange = (index) => {
 					if(index == 5) {
-						car.Running();
+						App.ins.audio.PlayEffOneShot("Assets/Res/Games/BCBM/BCBM/music/run_car.mp3");
+						car_.Running();
 					}
-					else if(objs.Count - index == 10) {
-						car.AboutToEnd();
+					else if(index == wayPointHolder.Count / 2) {
+						App.ins.audio.PlayEffOneShot("Assets/Res/Games/BCBM/BCBM/music/run_car.mp3");
+					}
+					else if(objs.Count - index == 5) {
+						App.ins.audio.PlayEffOneShot("Assets/Res/Games/BCBM/BCBM/music/stop_car.mp3");
+						car_.AboutToEnd();
 					}
 					else if (objs.Count - index == 2) {
-						car.Stoping();
+						car_.Stoping();
 					}
 					var current = objs[index];
 					current.StartParticles();
+					App.ins.audio.PlayEffOneShot("Assets/Res/Games/BCBM/BCBM/music/run_item.wav");
 				};
 
-				yield return new WaitForSeconds(app.conf.carRunnigTime * stateTimePercent);
-				car.Stoped();
-
+				yield return new WaitForSeconds(app.conf.carRunnigTime * stateTimePercent_);
+				car_.Stoped();
+				App.ins.audio.PlayEffOneShot(app.conf.resultSound[app.conf.itemsPlaced[thisPid_]]);
 				var winStage = GameObject.Find("winStage").FindChildDeeply(((int)bi).ToString());
 				winStage.SetActive(true);
 				winStage.StartParticles();
@@ -632,7 +688,7 @@ namespace Hotfix.BCBM
 			var item = app.conf.itemsPlaced[pid];
 			GameObject obj = new GameObject();
 			var img = obj.AddComponent<Image>();
-			img.ChangeSprite(rewardItemTexture[(int)item]);
+			img.ChangeSprite(rewardItemTexture_[(int)item]);
 			return obj;
 		}
 
@@ -659,11 +715,19 @@ namespace Hotfix.BCBM
 			var BankerInfo = canvas.FindChildDeeply("BankerInfo");
 
 			var BankerMoney = BankerInfo.FindChildDeeply("BankerMoney").GetComponent<TextMeshProUGUI>();
-			BankerMoney.text = msg.credits_;
-
 			var bankerInfo = resultPanel.FindChildDeeply("bankerInfo");
 			var name = bankerInfo.FindChildDeeply("name").GetComponent<Text>();
-			name.text = banker.nickName;
+
+			if (isSysBanker_) {
+				BankerMoney.text = Language.sysBankerGold;
+				name.text = Language.sysBankerName;
+			}
+			else {
+				BankerMoney.text = long.Parse(msg.credits_).ShowAsGold();
+				name.text = banker.nickName;
+			}
+
+			
 			var txtBankerWin = bankerInfo.FindChildDeeply("winScore").GetComponent<Text>();
 
 			long bankerWin = long.Parse(msg.this_win_);
@@ -691,26 +755,53 @@ namespace Hotfix.BCBM
 			}
 			
 			var BankerInfo = canvas.FindChildDeeply("BankerInfo");
-			var BankerProfile = BankerInfo.FindChildDeeply("BankerProfile").FindChildDeeply("BankerProfile").GetComponent<Image>();
+			var BankerProfile = BankerInfo.FindChildDeeply("BankerProfile/BankerProfile").GetComponent<Image>();
 			banker.SetHeadPic(BankerProfile);
 			var BankerProfileFrame = BankerInfo.FindChildDeeply("BankerProfileFrame").GetComponent<Image>();
 			banker.SetHeadFrame(BankerProfileFrame);
 		
 			var BankerName = BankerInfo.FindChildDeeply("BankerName").GetComponent<TextMeshProUGUI>();
-			if (int.Parse(msg.is_sys_banker_) == 0) {
-				BankerName.text = Language.gameName;
+			var BankerMoney = BankerInfo.FindChildDeeply("BankerMoney").GetComponent<TextMeshProUGUI>();
+
+			if (int.Parse(msg.is_sys_banker_) == 1) {
+				isSysBanker_ = true;
+				BankerName.text = Language.sysBankerName;
+				BankerProfile.ChangeSprite(resultItemTexture_[(int)eBetID.BaoMa]);
+				BankerMoney.text = Language.sysBankerGold;
 			}
 			else {
 				BankerName.text = banker.nickName;
+
+				BankerMoney.text = long.Parse(msg.deposit_).ShowAsGold();
 			}
 
-			var BankerMoney = BankerInfo.FindChildDeeply("BankerMoney").GetComponent<TextMeshProUGUI>();
-			BankerMoney.text = msg.deposit_;
+
 		}
 
 		public override void OnGameInfo(msg_game_info msg)
 		{
 			turn_ = int.Parse(msg.turn_);
+		}
+
+		GameObject tog_PlayerListPanel_;
+		public override void LazyUpdate()
+		{
+			base.LazyUpdate();
+			if (tog_PlayerListPanel_ == null)
+				tog_PlayerListPanel_ = canvas.FindChildDeeply("tog_PlayerListPanel");
+
+			var tPos = tog_PlayerListPanel_.transform.position;
+			tPos = uiCamera_.WorldToScreenPoint(tPos);
+			tPos.z = -arenaCamera_.gameObject.transform.position.z;
+			Vector3 worldP = arenaCamera_.ScreenToWorldPoint(tPos);
+
+			if (flyOutPos_ == null) flyOutPos_ = view_.FindChildDeeply("flyOutPos");
+			flyOutPos_.transform.position = worldP;
+
+
+			if(isAutoBettingEnabled_ && st == GameControllerBase.GameState.state_wait_start && isAutoBeting_ == 0) {
+				this.StartCor(ContinueBet(), true);
+			}
 		}
 
 		public override void OnGameReport(msg_game_report msg)
@@ -751,16 +842,16 @@ namespace Hotfix.BCBM
 				}
 			}
 			else {
-				gameReports.Add(msg);
+				gameReports_.Add(msg);
 			}
 
-			gameReports.Sort((it1, it2) => { 
+			gameReports_.Sort((it1, it2) => { 
 				long dt = long.Parse(it2.actual_win_) - long.Parse(it1.actual_win_);
 				return (int)dt;
 			});
 
-			for (int i = 0; i < gameReports.Count && i < 5; i++) {
-				var thisMsg = gameReports[i];
+			for (int i = 0; i < gameReports_.Count && i < 5; i++) {
+				var thisMsg = gameReports_[i];
 				
 				var otherInfo_1 = resultPanel.FindChildDeeply("otherInfo_" + (i + 1));
 				otherInfo_1.SetActive(true);
@@ -769,10 +860,10 @@ namespace Hotfix.BCBM
 				var txtwinScore = otherInfo_1.FindChildDeeply("winScore").GetComponent<Text>();
 				txtName.text = thisMsg.nickname_;
 				long v = long.Parse(thisMsg.actual_win_);
-				txtwinScore.text = v.ShowAsGold();							
+				txtwinScore.text = v.ShowAsGold();
 			}
 		}
-
+		
 		public override void OnGoldChange(msg_deposit_change2 msg)
 		{
 			int pos = App.ins.self.gamePlayer.serverPos;
@@ -805,7 +896,7 @@ namespace Hotfix.BCBM
 			if (applyList_.ContainsKey(App.ins.self.gamePlayer.uid)) {
 				var txt = btnToBanker.FindChildDeeply("Text (TMP)").GetComponent<TextMeshProUGUI>();
 				txt.text = Language.CancelBanker;
-				isApplyingBanker = true;
+				isApplyingBanker_ = true;
 			}
 		}
 
@@ -818,7 +909,7 @@ namespace Hotfix.BCBM
 			if (!applyList_.ContainsKey(App.ins.self.gamePlayer.uid)) {
 				var txt = btnToBanker.FindChildDeeply("Text (TMP)").GetComponent<TextMeshProUGUI>();
 				txt.text = Language.ApplyBanker;
-				isApplyingBanker = false;
+				isApplyingBanker_ = false;
 			}
 		}
 
@@ -860,19 +951,21 @@ namespace Hotfix.BCBM
 		Dictionary<int, BetItem> betItems_ = new Dictionary<int, BetItem>();
 
 		int lastPointerPos_ = 1, lastTurn_ = 0, thisPid_ = 0;
-		Dictionary<int,Texture2D> rewardItemTexture = new Dictionary<int, Texture2D>();
-		Dictionary<int, Texture2D> resultItemTexture = new Dictionary<int, Texture2D>();
-		float stateTimePercent = 0.0f;
+		Dictionary<int,Texture2D> rewardItemTexture_ = new Dictionary<int, Texture2D>();
+		Dictionary<int, Texture2D> resultItemTexture_ = new Dictionary<int, Texture2D>();
+		float stateTimePercent_ = 0.0f;
 		long myTotalBet__ = 0;
 
 		//用来排序
-		List<msg_game_report> gameReports = new List<msg_game_report>();
+		List<msg_game_report> gameReports_ = new List<msg_game_report>();
 		GamePlayer banker;
-		bool isAutoBeting = false, isApplyingBanker = false;
+		bool isApplyingBanker_ = false, isAutoBettingEnabled_ = false, isSysBanker_ = false;
+		int isAutoBeting_ = 0;
 		Dictionary<string, msg_new_banker_applyed> applyList_ = new Dictionary<string, msg_new_banker_applyed>();
-		RunningCar car;
+		RunningCar car_;
 
-		List<GameObject> chipModels = new List<GameObject>();
-		List<GameObject> flyingChips = new List<GameObject>();
+		List<GameObject> chipModels_ = new List<GameObject>();
+		List<GameObject> flyingChips_ = new List<GameObject>();
+		Camera uiCamera_, arenaCamera_;
 	}
 }

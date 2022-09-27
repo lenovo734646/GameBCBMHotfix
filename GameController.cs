@@ -47,10 +47,6 @@ namespace Hotfix.BCBM
 
 		protected override IEnumerator OnGameLoginSucc()
 		{
-			if(mainView != null) {
-				mainView.Close();
-				mainView = null;
-			}
 			yield return DoLoadMainScene();
 		}
 

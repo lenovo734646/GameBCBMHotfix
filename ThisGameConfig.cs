@@ -22,8 +22,9 @@ namespace Hotfix.BCBM
 	{
 		public List<int> betSet = new List<int>();
 		public Dictionary<eBetID, int> ratio = new Dictionary<eBetID, int>();
+		public Dictionary<eBetID, string> resultSound = new Dictionary<eBetID, string>();
 		public Dictionary<int, eBetID> itemsPlaced;
-		public float carRunnigTime = 12.0f;
+		public float carRunnigTime = 10.0f;
 		public int maxRecordCount = 20;
 		public void Init()
 		{
@@ -42,6 +43,15 @@ namespace Hotfix.BCBM
 			ratio.Add(eBetID.BaoMa, 5);
 			ratio.Add(eBetID.LuHu, 5);
 			ratio.Add(eBetID.JieBao, 5);
+
+			resultSound.Add(eBetID.BaoShiJie, "Assets/Res/Games/BCBM/BCBM/music/CN/BaoShiJie.wav");
+			resultSound.Add(eBetID.FaLaLi, "Assets/Res/Games/BCBM/BCBM/music/CN/FaLaLi.wav");
+			resultSound.Add(eBetID.MaShaLaDi, "Assets/Res/Games/BCBM/BCBM/music/CN/MaShaLaDi.wav");
+			resultSound.Add(eBetID.LanBoJiNi, "Assets/Res/Games/BCBM/BCBM/music/CN/LanBoJiNi.wav");
+			resultSound.Add(eBetID.BenChi, "Assets/Res/Games/BCBM/BCBM/music/CN/BenChi.wav");
+			resultSound.Add(eBetID.BaoMa, "Assets/Res/Games/BCBM/BCBM/music/CN/BaoMa.wav");
+			resultSound.Add(eBetID.LuHu, "Assets/Res/Games/BCBM/BCBM/music/CN/LuHu.wav");
+			resultSound.Add(eBetID.JieBao, "Assets/Res/Games/BCBM/BCBM/music/CN/JieBao.wav");
 
 			itemsPlaced = new Dictionary<int, eBetID>() {
 				{1, eBetID.BenChi },//1
