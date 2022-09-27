@@ -48,6 +48,12 @@ namespace Hotfix.BCBM
 		protected override IEnumerator OnGameLoginSucc()
 		{
 			yield return DoLoadMainScene();
+
+			var handle1 = App.ins.network.CoEnterGameRoom(0, 0);
+			yield return handle1;
+			if ((int)handle1.Current == 0) {
+				ViewToast.Create(LangNetWork.EnterRoomFailed);
+			}
 		}
 
 		public override msg_random_result_base CreateRandomResult(string json)

@@ -301,22 +301,16 @@ namespace Hotfix.BCBM
 			var btn_exit = Toggle_Menu.gameObject.FindChildDeeply("btn_Exit");
 			btn_exit.OnClick(() => {
 				ViewPopup pop = ViewPopup.Create(LangUITip.ConfirmLeave, ViewPopup.Flag.BTN_OK_CANCEL, () => {
-					App.ins.StartCor(App.ins.CheckUpdateAndRun(App.ins.conf.defaultGame, null, false), false);
+					App.ins.StartCor(App.ins.CoCheckUpdateAndRun(App.ins.conf.defaultGame, null, false), false);
 				});
 			});
 
-
-			//百人类游戏直接进游戏房间
-			var handle1 = App.ins.network.EnterGameRoom(1, 0);
-			yield return handle1;
-			if ((int)handle1.Current == 0) {
-				ViewToast.Create(LangNetWork.EnterRoomFailed);
-			}
-
+			App.ins.currentApp.game.Self.onDataChanged += OnMyDataChanged;
 			App.ins.self.gamePlayer.onDataChanged += OnMyDataChanged;
 			OnMyDataChanged(null, null);
 
 			App.ins.audio.PlayEffOneShot("Assets/Res/Games/BCBM/BCBM/music/BGM.mp3");
+			yield return 0;
 		}
 	
 		IEnumerator ContinueBet()
@@ -333,24 +327,25 @@ namespace Hotfix.BCBM
 		{
 			var useInfo = canvas.FindChildDeeply("UserInfo");
 			var head = useInfo.FindChildDeeply("Head").GetComponent<Image>();
-			App.ins.self.gamePlayer.SetHeadPic(head);
+			App.ins.currentApp.game.Self.SetHeadPic(head);
 
 			var frame = useInfo.FindChildDeeply("HeadFrame").GetComponent<Image>();
-			App.ins.self.gamePlayer.SetHeadFrame(frame);
+			App.ins.currentApp.game.Self.SetHeadFrame(frame);
 
 			var nickName = useInfo.FindChildDeeply("UserName").GetComponent<TextMeshProUGUI>();
-			nickName.text = App.ins.self.gamePlayer.nickName;
+			nickName.text = App.ins.currentApp.game.Self.nickName;
 
 			var goldText = useInfo.FindChildDeeply("UserMoney").GetComponent<TextMeshProUGUI>();
-			goldText.text = App.ins.self.gamePlayer.items[(int)ITEMID.GOLD].ShowAsGold();
+			goldText.text = App.ins.currentApp.game.Self.items[(int)ITEMID.GOLD].ShowAsGold();
 		}
 
-		protected override void OnClose()
+		protected override void OnStop()
 		{
 			betItems_.Clear();
-			App.ins.self.gamePlayer.onDataChanged -= OnMyDataChanged;
+			App.ins.currentApp.game.Self.onDataChanged -= OnMyDataChanged;
 			base.Close();
 		}
+
 
 		bool alertPlayed_ = false;
 		IEnumerator CountDown_(float t, TextMeshProUGUI txtCounter)
@@ -403,7 +398,7 @@ namespace Hotfix.BCBM
 			winScore.SetActive(false);
 
 			var name = selfInfo.FindChildDeeply("name").GetComponent<Text>();
-			name.text = App.ins.self.gamePlayer.nickName;
+			name.text = App.ins.self.nickName;
 
 			for (int i = 0; i < 5; i++) {
 				var otherInfo = resultPanel.FindChildDeeply("otherInfo_" + (i + 1));
@@ -453,7 +448,7 @@ namespace Hotfix.BCBM
 
 				gameReports_.Clear();
 
-				Globals.cor.RunAction(this, 2.0f * stateTimePercent_, () => {
+				RunAction(2.0f * stateTimePercent_, () => {
 					StartBet.SetActive(false);
 				});
 
@@ -474,7 +469,7 @@ namespace Hotfix.BCBM
 				StopBet.SetActive(true);
 				StopBet.StartSpine();
 
-				Globals.cor.RunAction(this, 2.0f * stateTimePercent_, () => {
+				RunAction(2.0f * stateTimePercent_, () => {
 					StopBet.SetActive(false);
 				});
 				if(st != newSt) {
@@ -528,7 +523,7 @@ namespace Hotfix.BCBM
 			chipToFly.transform.DOMove(pos, 0.3f);
 			flyingChips_.Add(chipToFly);
 			//筹码太多了需要移除
-			Globals.cor.RunAction(this, 0.1f, () => {
+			RunAction(0.1f, () => {
 				if(betTarget.transform.childCount > 10) {
 					var obj = betTarget.transform.GetChild(0);
 					GameObject.Destroy(obj.gameObject);
@@ -806,7 +801,7 @@ namespace Hotfix.BCBM
 
 		public override void OnGameReport(msg_game_report msg)
 		{
-			if (msg.uid_ == App.ins.self.gamePlayer.uid) {
+			if (msg.uid_ == App.ins.self.uid) {
 				var selfInfo = resultPanel.FindChildDeeply("selfInfo");
 				var winScore = selfInfo.FindChildDeeply("winScore");
 				long win = long.Parse(msg.actual_win_);
@@ -863,26 +858,6 @@ namespace Hotfix.BCBM
 				txtwinScore.text = v.ShowAsGold();
 			}
 		}
-		
-		public override void OnGoldChange(msg_deposit_change2 msg)
-		{
-			int pos = App.ins.self.gamePlayer.serverPos;
-			if (int.Parse(msg.pos_) == pos) {
-				if(int.Parse(msg.display_type_) == (int)msg_deposit_change2.dp.display_type_sync_gold) {
-					App.ins.self.gamePlayer.items.SetKeyVal((int)ITEMID.GOLD, long.Parse(msg.credits_));
-					App.ins.self.gamePlayer.DispatchDataChanged();
-				}
-			}
-		}
-
-		public override void OnGoldChange(msg_currency_change msg)
-		{
-			if(msg.why_ == "0") {
-				App.ins.self.gamePlayer.items.SetKeyVal((int)ITEMID.GOLD, long.Parse(msg.credits_));
-				App.ins.self.gamePlayer.DispatchDataChanged();
-			}
-
-		}
 
 		public override void OnApplyBanker(msg_new_banker_applyed msg)
 		{
@@ -893,7 +868,7 @@ namespace Hotfix.BCBM
 			}
 
 			//如果我在上庄
-			if (applyList_.ContainsKey(App.ins.self.gamePlayer.uid)) {
+			if (applyList_.ContainsKey(App.ins.self.uid)) {
 				var txt = btnToBanker.FindChildDeeply("Text (TMP)").GetComponent<TextMeshProUGUI>();
 				txt.text = Language.CancelBanker;
 				isApplyingBanker_ = true;
@@ -906,7 +881,7 @@ namespace Hotfix.BCBM
 			var WaitingBankerName = canvas.FindChildDeeply("WaitingBankerName").GetComponent<TextMeshProUGUI>();
 			WaitingBankerName.text = string.Format(Language.ApplyingBanker, applyList_.Count);
 			//如果我不在上庄
-			if (!applyList_.ContainsKey(App.ins.self.gamePlayer.uid)) {
+			if (!applyList_.ContainsKey(App.ins.self.uid)) {
 				var txt = btnToBanker.FindChildDeeply("Text (TMP)").GetComponent<TextMeshProUGUI>();
 				txt.text = Language.ApplyBanker;
 				isApplyingBanker_ = false;
