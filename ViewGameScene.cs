@@ -305,7 +305,6 @@ namespace Hotfix.BCBM
 				});
 			});
 
-			App.ins.currentApp.game.Self.onDataChanged += OnMyDataChanged;
 			App.ins.self.onDataChanged += OnMyDataChanged;
 			OnMyDataChanged(null, null);
 
@@ -325,27 +324,36 @@ namespace Hotfix.BCBM
 
 		void OnMyDataChanged(object sender, EventArgs evt)
 		{
+			PlayerBase self = App.ins.currentApp.game.Self;
+			if(self == null) {
+				self = App.ins.self;
+			}
+
 			var useInfo = canvas.FindChildDeeply("UserInfo");
 			var head = useInfo.FindChildDeeply("Head").GetComponent<Image>();
-			App.ins.currentApp.game.Self.SetHeadPic(head);
+			self.SetHeadPic(head);
 
 			var frame = useInfo.FindChildDeeply("HeadFrame").GetComponent<Image>();
-			App.ins.currentApp.game.Self.SetHeadFrame(frame);
+			self.SetHeadFrame(frame);
 
 			var nickName = useInfo.FindChildDeeply("UserName").GetComponent<TextMeshProUGUI>();
-			nickName.text = App.ins.currentApp.game.Self.nickName;
+			nickName.text = self.nickName;
 
 			var goldText = useInfo.FindChildDeeply("UserMoney").GetComponent<TextMeshProUGUI>();
-			goldText.text = App.ins.currentApp.game.Self.items[(int)ITEMID.GOLD].ShowAsGold();
+			goldText.text = self.items[(int)ITEMID.GOLD].ShowAsGold();
 		}
 
 		protected override void OnStop()
 		{
 			betItems_.Clear();
-			App.ins.currentApp.game.Self.onDataChanged -= OnMyDataChanged;
-			base.Close();
 		}
 
+		public override IEnumerator OnRoomEnterSucc()
+		{
+			App.ins.currentApp.game.Self.onDataChanged += OnMyDataChanged;
+			OnMyDataChanged(null, null);
+			yield return 0;
+		}
 
 		bool alertPlayed_ = false;
 		IEnumerator CountDown_(float t, TextMeshProUGUI txtCounter)
@@ -480,7 +488,6 @@ namespace Hotfix.BCBM
 				gameStateText.text = LangMultiplayer.BalanceResult;
 				resultPanel.SetActive(true);
 				ResetResultPanel_();
-
 			}
 
 			this.StartCor(CountDown_(int.Parse(msg.time_left), txtCounter), false);
@@ -769,8 +776,14 @@ namespace Hotfix.BCBM
 
 				BankerMoney.text = long.Parse(msg.deposit_).ShowAsGold();
 			}
+		}
 
+		protected override void OnAboutToStop()
+		{
+			if(App.ins.currentApp.game.Self != null)
+				App.ins.currentApp.game.Self.onDataChanged -= OnMyDataChanged;
 
+			App.ins.self.onDataChanged -= OnMyDataChanged;
 		}
 
 		public override void OnGameInfo(msg_game_info msg)
@@ -779,9 +792,8 @@ namespace Hotfix.BCBM
 		}
 
 		GameObject tog_PlayerListPanel_;
-		public override void LazyUpdate()
+		protected override void OnLazyUpdate()
 		{
-			base.LazyUpdate();
 			if (tog_PlayerListPanel_ == null)
 				tog_PlayerListPanel_ = canvas.FindChildDeeply("tog_PlayerListPanel");
 

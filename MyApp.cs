@@ -11,10 +11,9 @@ namespace Hotfix.BCBM
 	public class MyApp : AppBase
 	{
 		public ThisGameConfig conf = new ThisGameConfig();
-		public GameController theGame = new GameController();
 		public override void Start()
 		{
-			game = theGame;
+			game = new GameController();
 			conf.Init();
 			base.Start();
 		}

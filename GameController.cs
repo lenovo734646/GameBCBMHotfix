@@ -29,31 +29,28 @@ namespace Hotfix.BCBM
 			yield return 0;
 		}
 
-		//调用这个避免内存泄露
-		public override void Stop()
-		{
-			//移除所有正在执行的协程.
-			this.StopCor(-1);
-			base.Stop();
-		}
-
 		IEnumerator DoLoadMainScene()
 		{
 			yield return loading.WaitingForReady();
 			var view = new ViewGameScene(loading.loading);
 			OpenView(view);
-			yield return 0;
+			yield return view.WaitingForReady();
 		}
 
 		protected override IEnumerator OnGameLoginSucc()
 		{
 			yield return DoLoadMainScene();
 
-			var handle1 = App.ins.network.CoEnterGameRoom(0, 0);
+			var handle1 = App.ins.network.CoEnterGameRoom(1, 0);
 			yield return handle1;
 			if ((int)handle1.Current == 0) {
 				ViewToast.Create(LangNetWork.EnterRoomFailed);
 			}
+		}
+
+		protected override IEnumerator OnGameRoomSucc()
+		{
+			yield return mainView.OnRoomEnterSucc();
 		}
 
 		public override msg_random_result_base CreateRandomResult(string json)
