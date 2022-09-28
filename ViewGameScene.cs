@@ -306,7 +306,7 @@ namespace Hotfix.BCBM
 			});
 
 			App.ins.currentApp.game.Self.onDataChanged += OnMyDataChanged;
-			App.ins.self.gamePlayer.onDataChanged += OnMyDataChanged;
+			App.ins.self.onDataChanged += OnMyDataChanged;
 			OnMyDataChanged(null, null);
 
 			App.ins.audio.PlayEffOneShot("Assets/Res/Games/BCBM/BCBM/music/BGM.mp3");
