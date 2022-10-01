@@ -10,47 +10,23 @@ namespace Hotfix.BCBM
 	public class GameController : GameControllerMultiplayer
 	{
 		public ViewLoading loading;
-		public override void Start()
+		protected override IEnumerator OnStart()
 		{
-			base.Start();
-			this.StartCor(ShowLoading_(), false);
+			yield return base.OnStart();
+			yield return ShowLoading_();
 		}
 
 		public override IEnumerator ShowLogin()
 		{
 			MyDebug.Log("ShowLogin()");
-			return base.ShowLogin();
+			yield return base.ShowLogin();
 		}
 
 		IEnumerator ShowLoading_()
 		{
-			loading = new ViewLoading(null);
+			var loading = CreateLoading();
 			OpenView(loading);
 			yield return 0;
-		}
-
-		IEnumerator DoLoadMainScene()
-		{
-			yield return loading.WaitingForReady();
-			var view = new ViewGameScene(loading.loading);
-			OpenView(view);
-			yield return view.WaitingForReady();
-		}
-
-		protected override IEnumerator OnGameLoginSucc()
-		{
-			yield return DoLoadMainScene();
-
-			var handle1 = App.ins.network.CoEnterGameRoom(1, 0);
-			yield return handle1;
-			if ((int)handle1.Current == 0) {
-				ViewToast.Create(LangNetWork.EnterRoomFailed);
-			}
-		}
-
-		protected override IEnumerator OnGameRoomSucc()
-		{
-			yield return mainView.OnRoomEnterSucc();
 		}
 
 		public override msg_random_result_base CreateRandomResult(string json)
@@ -61,6 +37,15 @@ namespace Hotfix.BCBM
 		public override msg_last_random_base CreateLastRandom(string json)
 		{
 			return JsonMapper.ToObject<msg_last_random>(json);
+		}
+		protected override ViewGameSceneBase OnCreateViewGameScene(IShowDownloadProgress loadingProgress)
+		{
+			return new ViewGameScene(loadingProgress);
+		}
+
+		protected override ViewLoadingBase OnCreateLoading(IShowDownloadProgress loadingProgress)
+		{
+			return new ViewLoading(loadingProgress);
 		}
 	}
 }

@@ -32,15 +32,14 @@ namespace Hotfix.BCBM
 		}
 	}
 
-	public class ViewLoading : ViewBase
+	public class ViewLoading : ViewLoadingBase
 	{
 		public Slider slider;
 		public Text txt;
-		public AShower loading = new AShower();
 
 		public ViewLoading(IShowDownloadProgress ip):base(ip)
 		{
-			loading.vl_ = this;
+
 		}
 
 		protected override void SetLoader()
@@ -55,6 +54,12 @@ namespace Hotfix.BCBM
 			txt = canvas.FindChildDeeply("Text").GetComponent<Text>();
 			loading.SetUIRoot(canvas.FindChildDeeply("Slider"));
 			yield return 0;
+		}
+		protected override IShowDownloadProgress OnCreateProgressShower()
+		{
+			var s = new AShower();
+			s.vl_ = this;
+			return s;
 		}
 	}
 }
