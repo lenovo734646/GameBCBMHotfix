@@ -300,9 +300,7 @@ namespace Hotfix.BCBM
 			var btn_set = Toggle_Menu.gameObject.FindChildDeeply("btn_Set");
 			var btn_exit = Toggle_Menu.gameObject.FindChildDeeply("btn_Exit");
 			btn_exit.OnClick(() => {
-				ViewPopup pop = ViewPopup.Create(LangUITip.ConfirmLeave, ViewPopup.Flag.BTN_OK_CANCEL, () => {
-					App.ins.StartCor(App.ins.CoCheckUpdateAndRun(App.ins.conf.defaultGame, null, false), false);
-				});
+				App.ins.RunGame();
 			});
 
 			App.ins.self.onDataChanged += OnMyDataChanged;
